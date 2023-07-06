@@ -1,0 +1,405 @@
+---
+title: "TP Calcul Parallel"
+output: 
+ pdf_document:
+  toc: yes
+  keep_tex: yes
+  number_sections: yes
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+\newpage
+# Objectifs et Importance de la progammation parallèle
+
+De manière générale, l'exécution d'une opération sur un ordinateur se fait suivant le principe du calcul séquentiel qui consiste en l'exécution de l'opération à travers des étapes successives, où chaque étape ne se déclenche que lorsque l'étape précédente est terminée, y compris lorsque les deux étapes sont indépendantes a priori sur une seule ressource. L'implémentation d'un programme sur R obéit par défaut au principe du calcul séquentielle. Ceci étant, à mesure que les opérations effectuées portent sur des jeux de données relativement grands, ce principe de calcul révèle un certain nombre de limites:
+
+-   Il est trop coûteux en temps de calcul, en mémoire;
+
+-   Les volumes de données à traiter sont trop importants, trop longs à écrire;
+
+-   Les performances sont moins bonnes que sur des machines plus vieilles,...
+
+Lorsque l'exécution d'un programme sur R s'avère lent aux besoins de ses utilisateurs, son temps d'exécution doit être optimisé. Il existe plusieurs stratégies pour arriver à cette optimisation: il est
+recommandé utiliser des fonctions déjà optimisées et disponibles publiquement ; exploiter les calculs vectoriels et matriciels, qui sont plus rapides que des boucles en R ; éviter les allocations mémoire inutiles, notamment les objets de taille croissante et les modifications répétées d'éléments dans un data frame. Malgré ces méthodes d'optimisation, la programmation peut toujours être aussi lente.
+Une solution appropriée sur R pour optimiser le temps d'exécution est alors le
+calcul en parallèle.
+
+Ainsi, l'objectif du calcul en parallèle est d'effectuer plus rapidement un calcul informatique en exploitant simultanément plusieurs unités de calcul.
+
+# Principe général
+
+1.  Briser un calcul informatique en blocs de calcul indépendants;
+
+2.  Exécuter simultanément (en parallèle) les blocs de calcul sur plusieurs unités de calcul;
+
+3.  Rassembler les résultats et les retourner.
+
+**Paralléliser** un problèmeconsiste à décomposer ce problème en plusieurs sous problèmes à résoudre simultanément à travers différentes ressources, pour ressortir la solution du problème initial, dans un
+délai optimal. Ainsi, le principe du **calcul parallèle** est d'effectuer simultanément une même tâche ou exécuter un même programme de manière parallèle. Cela est aussi possible à travers différentes machines connectées par un réseau où chacun d'eux reçoit une tache à exécuter. Sur R,
+L'utilité du calcul en parallèle réside dans le faite qu'il permet d'effectuer plus rapidement et de manière asynchrone l'exécution de programme sur des bases de données volumineuses en exploitant simultanément plusieurs unités de calcul d'un ordinateur appelées cœurs.
+
+![Modèle de programmation MapReduce](images/map.PNG "Modèle de programmation MapReduce")
+
+# Notions de base
+
+1.  **Processeur ou CPU:** Son rôle est de lire et d'exécuter les instructionsprovenant d'un programme.
+
+    -   Les processeurs sont de nos jours la plupart du temps **divisés en plus d'une unité de calcul**, nommée coeur (en anglais core). Il s'agit alors de **processeurs multi-coeurs**. Ce type de matériel permet de faire du calcul en parallèle sur une seule machine, en exploitant plus d'un coeur de la machine.
+
+    -   **Threads:** Les coeurs exécutent ce que l'on appelle des **fils d'exécution** (en anglais **threads**). Un fil d'exécution est une petite séquence d'instructions en langage machine.
+
+    -   **Processus monothread**: Lorsque les fils d'exécution sont exécutés séquentiellement par un coeur soit un après l'autre.
+
+    -   **Processus multithreads:** Il existe cependant une technologie permettant à un seul coeur physique d'exécuter plus d'un fil d'exécution simultanément. On dit alors que le coeur physique est séparé en **coeurs logiques**. On parle alors d'un coeur multithread.
+
+2.  
+
+# Etapes du calcul parallèle
+
+1.  Démarrer m processus "travailleurs" (i.e.cœurs de calcul) et les initialiser;
+
+2.  Envoyer les fonctions et données nécessaires pour chaque tache aux travailleurs;
+
+3.  Séparer les taches en m opérations d'envergure similaire et les envoyer aux travailleurs;
+
+4.  Attendre que tous les travailleurs aient terminer leurs calculs et obtenir leurs résultats;
+
+5.  Rassembler les résultats des différents travailleurs;
+
+6.  Arrêter les processus travailleurs
+
+Le package parallel permet de démarrer et d'arrêter un "cluster" de plusieurs processus travailleur (étape 1). En plus du package `parallel`, on va donc utiliser le package `doParallel` qui permet de gérer les processus travailleurs et la communication (étapes 1) et l'articulation avec le package `foreach`qui permet lui de gérer le dialogue avec les travailleurs (envois, réception et rassemblement des résultats - étapes 2, 3, 4 et 5).
+
+# Programmation parallèle avec R
+
+-   Package **Parallel:** inclus dans la distribution de base de R: Il se base sur l'utilisation de fonctions de la famille des apply.
+
+-   Package doParallel et Foreach:
+
+-   Le package rmr2 (MapReduce)
+
+-   Etc.
+
+# Quelques fonctions importantes
+
+-   Du package Parallel
+
+    -   **Detectcores()**: permet de détecter le nombre cœurs de la machine.
+
+    -   **Makecluster() :**
+
+    -   **Stopcluster():** est utilisé pour arrêter et libérer les différents workers.
+
+    -   La famille des fonctions **Applay,** adaptées au calcul parallèle sous R permet d'exécuter simultanément les opérations sur les différents blocs.
+
+        -   parApplay() permet d'effectuer des calculs en parallèle sur une matrice ou un tableau
+
+            en utilisant un cluster de travailleurs
+
+        -   parLapply() permet d'appliquer une fonction à chaque élément d'une liste en utilisant un cluster de travailleurs pour exécuter les calculs en parallèle.
+
+        -   parSapplay() permet d'appliquer une fonction de manière parallèle à des éléments d'une liste.Elle prend en argument le jeu de donné et la fonction et retourne un vecteur ou une matrice.
+
+    -   clusterEvalQ(): Elle est utilisée pour évaluer une expression sur tous les nœuds d'un cluster parallèle. Elle est utile lorsque vous avez besoin d'exécuter une expression ou de charger des bibliothèques spécifiques sur chaque nœud du cluster avant d'exécuter des tâches parallèles.
+
+-   Du package Doparallel et Foreach
+
+    -   Foreach: Il constitue une alternative aux fonctions applay utilisé dans le package parallèle. Il fournit une approche simplifiée pour effectuer des boucles parallèles en R, en permettant d'exploiter efficacement les ressources de calcul disponibles sur un système. Il s'appuie généralement sur d'autres packages parallèles, tels que "doParallel" ou "doSNOW", pour exécuter les boucles en parallèle.
+
+    -   **`%dopar%`** est un opérateur spécifique du package "foreach" en R, qui permet d'effectuer des itérations parallèles sur des objets itérables tels que des vecteurs, des listes ou des data frames.
+
+    -   registerDoParallel() fait le même que Makecluster
+
+-   Package rmr2 (Disponible seulement pour les versions antérieures de R)
+
+    -   mapreduce(): La fonction **`mapreduce()`** est une fonction clé du package R "rmr2" (ou "RHadoop") qui fournit une interface pour exécuter des calculs distribués sur des systèmes de fichiers distribués tels que Hadoop.
+
+    -   keyval(): elle est utilisée pour définir des paires clé-valeur qui serviront de données d'entrée pour les opérations de MapReduce. Cette fonction prend deux arguments : une clé et une valeur, et retourne une structure de données représentant une paire clé-valeur.
+
+# Préliminaire
+
+
+```{r}
+#vider la mémoire
+rm(list=ls())
+
+```
+
+```{r}
+#lancer le garbage collector
+gc()
+
+```
+
+Le garbage collector permet de gérer automatiquement la mémoire allouée aux objets.
+
+Lorsqu'un programme s'exécute, il alloue de la mémoire pour créer des objets et stocker des données. Cependant, il arrive souvent que certains objets ne soient plus utilisés par le programme, ce qui crée des "déchets" ou des "objets morts" en mémoire. Si ces objets morts ne sont pas libérés, ils peuvent occuper de l'espace précieux en mémoire et entraîner des problèmes tels que des fuites de mémoire.
+
+## Packages
+
+```{r, message=FALSE, warning=FALSE, include=FALSE}
+#pour mesurer le temps de calcul
+#install.packages("tictoc")
+library(tictoc)
+
+#library parallel
+library(parallel)
+
+#packages combinaison de foreach et doParallel
+library(foreach)
+library(doParallel)
+
+# 
+#install.packages("snow")
+library(snow)
+```
+
+```{r}
+#information sur les versions
+sessionInfo()
+#help(package='parallel')
+```
+
+# Définition de la fonction pour calculer le Min
+
+```{r}
+mon_min <- function(v) {
+  #copie locale
+  temp <- v
+  #longueur du vecteur
+  n <- length(temp)
+  #tri par selection si (n > 1)
+  if (n > 1) {
+    #recherche des minimums successifs
+    for (i in 1:(n - 1)) {
+      i_mini <- i
+      for (j in (i + 1):n) {
+        if (temp[j] < temp[i_mini]) {
+          i_mini <- j
+        }
+      }
+      #Echanger
+      if (i_mini != i) {
+        tempo <- temp[i]
+        temp[i] <- temp[i_mini]
+        temp[i_mini] <- tempo
+      }
+    }
+  }
+  #la plus petite valeur est le min.
+  return(temp[1])
+}
+
+```
+
+# Application de la programmation parallèle pour déterminer le Min
+
+```{r}
+# Génération d'un vecteur de données
+n <- 10
+a <- runif(n)
+a
+```
+
+## Calcul direct (sans paralleliser)
+
+```{r}
+#appel de la fonction sur la totalité du vecteur
+tic()
+print(paste('Min direct =',mon_min(a)))
+print('>> Temps de calcul - fonction mon_min direct')
+toc()
+```
+
+## Calcul en utilisant la programmation parallèle
+
+```{r}
+
+#affichage nombre de coeurs dispo
+print(parallel::detectCores())
+#nombre de blocs des donnees = nombre de cores
+k <- 4
+#partition en blocs des donn?es
+blocs <- split(a,1+(1:n)%%k)
+print(blocs)
+```
+
+```{r message=FALSE, warning=FALSE}
+#appel de la fonction sur la totalité du vecteur
+tic()
+print(paste('Min direct =',mon_min(a)))
+print('>> Temps de calcul - fonction mon_min direct')
+toc()
+#pour mesurer le processus global de **parallel**
+tic()
+#Demarrage des moteurs (workers)
+clust <- parallel::makeCluster(4)
+#lancement des min en parallele
+res <- parallel::parSapply(clust,blocs,FUN = mon_min)
+#résultats intermédiaires
+print(res)
+#fonction de consolidation
+print(paste('Min parallel =',mon_min(res)))
+#Eteindre les moteurs
+parallel::stopCluster(clust)
+#affichage temps de calcul
+print('>> Temps de calcul total avec parSapply min par bloc')
+#temps de calcul
+toc()
+```
+
+### Calcul de la moyenne
+
+```{r}
+#appel de la fonction sur la totalité du vecteur
+tic()
+print(paste('Moyenne direct =',mean(a)))
+print('>> Temps de calcul - fonction moyenne direct')
+toc()
+#pour mesurer le processus global de **parallel**
+tic()
+#Demarrage des moteurs (workers)
+clust <- parallel::makeCluster(4)
+#lancement des min en parallele
+res <- parallel::parSapply(clust,blocs,FUN = mean)
+poids<-parallel::parSapply(clust,blocs,FUN = length)
+#résultats intermédiaires
+print(res)
+#fonction de consolidation
+moy<-weighted.mean(res,poids)
+print(paste('Moyenne parallel =',moy))
+
+#Eteindre les moteurs
+parallel::stopCluster(clust)
+#affichage temps de calcul
+print('>> Temps de calcul total avec parSapply moy par bloc)')
+#temps de calcul
+toc()
+
+```
+
+*Rapport sur l'usage des coeurs*
+
+```{r}
+# Rapport sur l'usage des coeurs
+cl <- snow::makeCluster(k) 
+ctime1 <- snow.time(clusterApply(cl,blocs,fun=mean))
+
+plot(ctime1)
+```
+
+# Avec les packages Doparallel et Foreach
+
+```{r}
+#nombre de cores à exploiter
+#k <- 4
+tic()
+#partition en blocs des donnees
+blocs <- split(a,1+(1:n)%%k)
+#print(blocs)
+
+#configurer les cores
+doParallel::registerDoParallel(k)
+
+#itérer sur les blocs
+res <- foreach::foreach(b = blocs, .combine = c) %dopar% {
+  return(mon_min(b))
+}
+
+#résultats intermédiaires
+#print(res)
+
+#minimum global
+print(paste('Min foreach/dopar =',mon_min(res)))
+
+#stopper les cores
+doParallel::stopImplicitCluster()
+
+#affichage temps de calcul
+print('>> Temps de calcul total avec foreach/dopar (split + min par bloc)')
+
+#temps de calcul
+toc()
+
+```
+
+# La regression en parallèle
+
+Données: Nous utilisons les données mtcars. Nous cherchons à expliquer la consommation (mpg) en fonction des autres variables.
+
+```{r}
+data<-(data(mtcars))
+#View(mtcars)
+```
+
+```{r}
+alea <- runif(nrow(mtcars))
+cle <- ifelse(alea < 0.5, 1, 2)
+blocs <- split(mtcars,cle)
+print(blocs)
+```
+
+```{r}
+#reduce
+reduce_lm <- function(D){
+ #nombre de lignes
+ n <- nrow(D)
+ #récupération de la cible
+ y <- D$mpg
+ #prédictives
+ X <- as.matrix(D[,-1])
+ #rajouter la constante en première colonne
+ X <- cbind(rep(1,n),X)
+ #calcul de X'X
+ XtX <- t(X) %*% X
+ #calcul de X'y
+ Xty <- t(X) %*% y
+ #former une structure de liste
+ res <- list(XtX = XtX, Xty = Xty)
+ #renvoyer le tout
+ return(res)
+}
+```
+
+```{r}
+#Demarrage des moteurs (workers)
+clust <- parallel::makeCluster(4)
+#lancement des min en parallele
+res <- parallel::parSapply(clust,blocs,FUN = reduce_lm)
+
+#résultats intermédiaires
+print(res)
+#fonction de consolidation
+#consolidation
+#X'X
+MXtX <- matrix(0,nrow=ncol(mtcars),ncol=ncol(mtcars))
+for (i in seq(1,length(res)-1,2)){
+ MXtX <- MXtX + res[[i]]
+}
+print(MXtX)
+#X'y
+MXty <- matrix(0,nrow=ncol(mtcars),ncol=1)
+for (i in seq(2,length(res),2)){
+ MXty <- MXty + res[[i]]
+}
+print(MXty)
+#Eteindre les moteurs
+parallel::stopCluster(clust)
+```
+
+Estimation des paramètres de la régression. Les estimateurs â sont produits à l'aide de procédure solve() de R.
+
+```{r}
+#coefficients de la régression
+a.chapeau <- solve(MXtX,MXty)
+print(a.chapeau)
+```
+
+Vérification - Procédure lm() de R. A titre de vérification, nous avons effectué la régression à l'aide de la procédure lm() de R.
+
+```{r}
+print(summary(lm(mpg~.,data=mtcars)))
+```
+
